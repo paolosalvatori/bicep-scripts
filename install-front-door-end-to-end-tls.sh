@@ -237,6 +237,8 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "360"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "360"
     nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "360"
+    external-dns.alpha.kubernetes.io/hostname: "-"
+    external-dns.alpha.kubernetes.io/ttl: "0"
 spec:
   ingressClassName: nginx
   tls:
