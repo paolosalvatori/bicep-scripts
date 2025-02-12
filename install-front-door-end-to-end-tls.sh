@@ -237,8 +237,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "360"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "360"
     nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "360"
-    external-dns.alpha.kubernetes.io/hostname: "-"
-    external-dns.alpha.kubernetes.io/ttl: "0"
+    external-dns.alpha.kubernetes.io/ingress-hostname-source: "annotation-only" # This entry tell ExternalDNS to only use the hostname defined in the annotation, hence not to create any DNS records for this ingress
 spec:
   ingressClassName: nginx
   tls:
