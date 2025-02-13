@@ -65,6 +65,7 @@ if [[ "$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressContr
       --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
     fi
 fi
+
 # Create values.yaml file for cert-manager
 cat <<EOF >values.yaml
 podLabels:
@@ -108,7 +109,7 @@ EOF
   fi
 
   # Create this cluster issuer only when the managed NGINX ingress controller is installed and configured to use the AKS public load balancer
-  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" && $nginxIngressControllerType" == "Unmanaged" ]]; then
+  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" && "$nginxIngressControllerType" == "Unmanaged" ]]; then
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
