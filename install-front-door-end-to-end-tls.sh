@@ -40,17 +40,30 @@ fi
 
 # Install NGINX ingress controller using the internal load balancer
 if [[ "$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressController" == "true" ]]; then
-  helm install nginx-ingress ingress-nginx/ingress-nginx \
-    --create-namespace \
-    --namespace ingress-basic \
-    --set controller.replicaCount=3 \
-    --set controller.nodeSelector."kubernetes\.io/os"=linux \
-    --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux \
-    --set controller.metrics.enabled=true \
-    --set controller.metrics.serviceMonitor.enabled=true \
-    --set controller.metrics.serviceMonitor.additionalLabels.release="prometheus" \
-    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
-    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-internal"=true
+  if [[ "$nginxIngressControllerType" == "Unmanaged" ]]; then
+    helm install nginx-ingress ingress-nginx/ingress-nginx \
+      --create-namespace \
+      --namespace ingress-basic \
+      --set controller.replicaCount=3 \
+      --set controller.nodeSelector."kubernetes\.io/os"=linux \
+      --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux \
+      --set controller.metrics.enabled=true \
+      --set controller.metrics.serviceMonitor.enabled=true \
+      --set controller.metrics.serviceMonitor.additionalLabels.release="prometheus" \
+      --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
+      --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-internal"=true
+    else
+        helm install nginx-ingress ingress-nginx/ingress-nginx \
+      --create-namespace \
+      --namespace ingress-basic \
+      --set controller.replicaCount=3 \
+      --set controller.nodeSelector."kubernetes\.io/os"=linux \
+      --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux \
+      --set controller.metrics.enabled=true \
+      --set controller.metrics.serviceMonitor.enabled=true \
+      --set controller.metrics.serviceMonitor.additionalLabels.release="prometheus" \
+      --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
+    fi
 fi
 # Create values.yaml file for cert-manager
 cat <<EOF >values.yaml
