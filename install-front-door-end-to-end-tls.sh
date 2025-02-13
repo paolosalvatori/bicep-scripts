@@ -31,6 +31,7 @@ helm repo update
 
 # Install Prometheus
 if [[ "$installPrometheusAndGrafana" == "true" ]]; then
+  echo "Installing Prometheus and Grafana..."
   helm install prometheus prometheus-community/kube-prometheus-stack \
     --create-namespace \
     --namespace prometheus \
@@ -41,6 +42,7 @@ fi
 # Install NGINX ingress controller using the internal load balancer
 if [[ "$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressController" == "true" ]]; then
   if [[ "$nginxIngressControllerType" == "Unmanaged" ]]; then
+    echo "Installing unmanaged NGINX ingress controller on the internal load balancer..."
     helm install nginx-ingress ingress-nginx/ingress-nginx \
       --create-namespace \
       --namespace ingress-basic \
@@ -53,7 +55,8 @@ if [[ "$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressContr
       --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
       --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-internal"=true
     else
-        helm install nginx-ingress ingress-nginx/ingress-nginx \
+      echo "Installing unmanaged NGINX ingress controller on the public load balancer..."
+      helm install nginx-ingress ingress-nginx/ingress-nginx \
       --create-namespace \
       --namespace ingress-basic \
       --set controller.replicaCount=3 \
@@ -67,6 +70,7 @@ if [[ "$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressContr
 fi
 
 # Create values.yaml file for cert-manager
+echo "Creating values.yaml file for cert-manager..."
 cat <<EOF >values.yaml
 podLabels:
   azure.workload.identity/use: "true"
@@ -77,6 +81,7 @@ EOF
 
 # Install certificate manager
 if [[ "$installCertManager" == "true" ]]; then
+  echo "Installing cert-manager..."
   helm install cert-manager jetstack/cert-manager \
     --create-namespace \
     --namespace cert-manager \
@@ -86,6 +91,7 @@ if [[ "$installCertManager" == "true" ]]; then
 
   # Create this cluster issuer only when the unmanaged NGINX ingress controller is installed and configured to use the AKS public load balancer
   if [[ -n "$email" && ("$nginxIngressControllerType" == "Managed" || "$installNginxIngressController" == "true") ]]; then
+    echo "Creating the letsencrypt-nginx cluster issuer for the unmanaged NGINX ingress controller..."
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -109,7 +115,8 @@ EOF
   fi
 
   # Create this cluster issuer only when the managed NGINX ingress controller is installed and configured to use the AKS public load balancer
-  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" && "$nginxIngressControllerType" == "Unmanaged" ]]; then
+  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" ]]; then
+    echo "Creating the letsencrypt-webapprouting cluster issuer for the managed NGINX ingress controller..."
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -134,6 +141,7 @@ EOF
 
   # Create cluster issuer
   if [[ -n "$email" && -n "$dnsZoneResourceGroupName" && -n "$subscriptionId" && -n "$dnsZoneName" && -n "$certManagerClientId" ]]; then
+    echo "Creating the letsencrypt-dns cluster issuer..."
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -161,6 +169,7 @@ fi
 
 # Configure the managed NGINX ingress controller to use an internal Azure load balancer
 if [[ "$nginxIngressControllerType" == "Managed" ]]; then
+  echo "Creating a managed NGINX ingress controller configured to use an internal Azure load balancer..."
   cat <<EOF | kubectl apply -f -
 apiVersion: approuting.kubernetes.azure.com/v1alpha1
 kind: NginxIngressController
@@ -175,6 +184,7 @@ EOF
 fi
 
 # Create a namespace for the application
+echo "Creating the [$namespace] namespace..."
 kubectl create namespace $namespace
 
 # Create the Secret Provider Class object
@@ -291,7 +301,7 @@ else
 fi
 
 # Create an ingress resource for the application
-echo "Creating an ingress in the [$namespace] namespace..."
+echo "Creating an ingress in the [$namespace] namespace configured to use the [$ingressClassName] ingress class..."
 cat <<EOF | kubectl apply -n $namespace -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
