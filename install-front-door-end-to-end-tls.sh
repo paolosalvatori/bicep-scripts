@@ -83,8 +83,8 @@ if [[ "$installCertManager" == "true" ]]; then
     --set nodeSelector."kubernetes\.io/os"=linux \
     --values values.yaml
 
-  # Create cluster issuer
-  if [[ -n "$email" && ("$nginxIngressControllerType" == "Unmanaged" || "$installNginxIngressController" == "true") ]]; then
+  # Create this cluster issuer only when the unmanaged NGINX ingress controller is installed and configured to use the AKS public load balancer
+  if [[ -n "$email" && ("$nginxIngressControllerType" == "Managed" || "$installNginxIngressController" == "true") ]]; then
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -107,12 +107,13 @@ spec:
 EOF
   fi
 
-  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" ]]; then
+  # Create this cluster issuer only when the managed NGINX ingress controller is installed and configured to use the AKS public load balancer
+  if [[ -n "$email" && "$webAppRoutingEnabled" == "true" && $nginxIngressControllerType" == "Unmanaged" ]]; then
     cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: letsencrypt-nginx
+  name: letsencrypt-webapprouting
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
@@ -163,10 +164,10 @@ if [[ "$nginxIngressControllerType" == "Managed" ]]; then
 apiVersion: approuting.kubernetes.azure.com/v1alpha1
 kind: NginxIngressController
 metadata:
-  name: default 
+  name: nginx-internal
 spec:
-  controllerNamePrefix: nginx
-  ingressClassName: webapprouting.kubernetes.azure.com
+  controllerNamePrefix: nginx-internal
+  ingressClassName: nginx-internal
   loadBalancerAnnotations: 
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 EOF
@@ -283,7 +284,7 @@ EOF
 
 # Determine the ingressClassName
 if [[ "$nginxIngressControllerType" == "Managed" ]]; then
-  ingressClassName="webapprouting.kubernetes.azure.com"
+  ingressClassName="nginx-internal"
 else
   ingressClassName="nginx"
 fi
