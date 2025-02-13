@@ -85,7 +85,7 @@ if [[ "$installCertManager" == "true" ]]; then
   helm install cert-manager jetstack/cert-manager \
     --create-namespace \
     --namespace cert-manager \
-    --set installCRDs=true \
+    --set crds.enabled=true \
     --set nodeSelector."kubernetes\.io/os"=linux \
     --values values.yaml
 
