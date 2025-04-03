@@ -19,7 +19,7 @@ private=$(az aks show --name $clusterName \
 # Install Helm
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o get_helm.sh -s
 chmod 700 get_helm.sh
-./get_helm.sh &>/dev/null
+./get_helm.sh
 
 # Add Helm repos
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
