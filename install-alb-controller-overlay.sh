@@ -154,7 +154,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: $email
     privateKeySecretRef:
-      name: letsencrypt-dns
+      name: letsencrypt
     solvers:
     - dns01:
         azureDNS:
