@@ -1,3 +1,6 @@
+# Install git and tar
+apk add --no-cache --quiet git tar
+
 # Install kubectl
 az aks install-cli --only-show-errors
 
@@ -19,7 +22,7 @@ private=$(az aks show --name $clusterName \
 # Install Helm
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 chmod 700 get_helm.sh
-./get_helm.sh
+./get_helm.sh &>/dev/null
 
 # Add Helm repos
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -185,7 +188,7 @@ if [[ "$applicationGatewayForContainersEnabled" == "true" &&
     --install \
     --create-namespace \
     --namespace $applicationGatewayForContainersNamespace \
-    --version 1.0.0 \
+    --version $applicationGatewayForContainersHelmChartVersion \
     --set albController.namespace=$applicationGatewayForContainersNamespace \
     --set albController.podIdentity.clientID=$applicationGatewayForContainersManagedIdentityClientId
 
@@ -218,7 +221,7 @@ apiVersion: alb.networking.azure.io/v1
 kind: ApplicationLoadBalancer
 metadata:
   name: alb
-  namespace: alb-infra
+  namespace: $albInfraNamespace
 spec:
   associations:
   - $applicationGatewayForContainersSubnetId
