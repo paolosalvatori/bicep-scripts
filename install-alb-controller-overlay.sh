@@ -97,6 +97,7 @@ if [[ $deployCertificateManagerViaHelm == 'true' ]]; then
   if [[ ${#ingressClassArray[@]} > 0 && ${#ingressClassArray[@]} == ${#clusterIssuerArray[@]} ]]; then
     for i in ${!ingressClassArray[@]}; do
       echo "Creating cluster issuer ${clusterIssuerArray[$i]} for the ${ingressClassArray[$i]} ingress class..."
+      
       # Create cluster issuer
       cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
@@ -108,7 +109,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: $email
     privateKeySecretRef:
-      name: letsencrypt
+      name: ${clusterIssuerArray[$i]}-secret
     solvers:
     - http01:
         ingress:
@@ -117,9 +118,36 @@ spec:
             spec:
               nodeSelector:
                 "kubernetes.io/os": linux
-EOF
+EOF 
     done
   fi
+
+  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n cer ]]; then
+        # Create DNS01 challenge issuer
+        echo "Creating DNS01 challenge issuer for the ${ingressClassArray[$i]} ingress class..."
+        cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-dns
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: $email
+    privateKeySecretRef:
+      name: letsencrypt-dns
+    solvers:
+    - dns01:
+        azureDNS:
+          resourceGroupName: $dnsZoneResourceGroupName
+          subscriptionID: $subscriptionId
+          hostedZoneName: $dnsZoneName
+          environment: AzurePublicCloud
+          managedIdentity:
+            clientID: $certificateManagerManagedIdentityClientId
+
+EOF
+      fi 
 fi
 
 if [[ $deployNginxIngressControllerViaHelm == 'External' ]]; then
