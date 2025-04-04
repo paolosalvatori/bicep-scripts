@@ -122,9 +122,9 @@ EOF
     done
   fi
 
-  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n cer ]]; then
+  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n $certificateManagerManagedIdentityClientId ]]; then
         # Create DNS01 challenge issuer
-        echo "Creating DNS01 challenge issuer for the ${ingressClassArray[$i]} ingress class..."
+        echo "Creating DNS01 challenge issuer..."
         cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -147,7 +147,7 @@ spec:
             clientID: $certificateManagerManagedIdentityClientId
 
 EOF
-      fi 
+  fi
 fi
 
 if [[ $deployNginxIngressControllerViaHelm == 'External' ]]; then
