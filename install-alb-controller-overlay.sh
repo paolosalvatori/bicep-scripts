@@ -145,7 +145,6 @@ spec:
           environment: AzurePublicCloud
           managedIdentity:
             clientID: $certificateManagerManagedIdentityClientId
-
 EOF
   fi
 fi
