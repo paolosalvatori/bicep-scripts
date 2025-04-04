@@ -24,14 +24,6 @@ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scrip
 chmod 700 get_helm.sh
 ./get_helm.sh &>/dev/null
 
-# Add Helm repos
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo add jetstack https://charts.jetstack.io
-
-# Update Helm repos
-helm repo update
-
 # initialize variables
 applicationGatewayForContainersName=''
 diagnosticSettingName="DefaultDiagnosticSettings"
@@ -77,7 +69,17 @@ fi
 
 # Install certificate manager
 if [[ $deployCertificateManagerViaHelm == 'true' ]]; then
-  echo "Installing cert-manager..."
+  echo "Installing Certificate Manager..."
+
+  cat <<EOF > values.yaml
+# values.yaml
+podLabels:
+  azure.workload.identity/use: "true"
+serviceAccount:
+  labels:
+    azure.workload.identity/use: "true"
+EOF
+
   helm upgrade cert-manager jetstack/cert-manager \
     --install \
     --create-namespace \
@@ -85,12 +87,29 @@ if [[ $deployCertificateManagerViaHelm == 'true' ]]; then
     --set crds.enabled=true \
     --set prometheus.enabled=true \
     --set nodeSelector."kubernetes\.io/os"=linux \
-    --set podLabels.azure\.workload\.identity/use="true" \
-    --set serviceAccount.labels.azure\.workload\.identity/use="true"
+    --values values.yaml
 
-  # Create arrays from the comma-separated strings
+  # Remove brackets and quotes, then split into an array
+  if [[ $ingressClassNames == \[*\] ]]; then
+    # Handle JSON-like array
+    ingressClassNames=${ingressClassNames:1:-1} # Remove the square brackets
+  fi
+
+  # Create arrays from the comma-separated string
   IFS=',' read -ra ingressClassArray <<<"$ingressClassNames"   # Split the string into an array
+
+   # Remove brackets and quotes, then split into an array
+  if [[ $clusterIssuerNames == \[*\] ]]; then
+    # Handle JSON-like array
+    clusterIssuerNames=${clusterIssuerNames:1:-1} # Remove the square brackets
+  fi
+
+  # Create arrays from the comma-separated string
   IFS=',' read -ra clusterIssuerArray <<<"$clusterIssuerNames" # Split the string into an array
+
+
+  echo "Ingress Class Names: ${ingressClassArray[@]}"
+  echo "Cluster Issuer Names: ${clusterIssuerArray[@]}"
 
   # Check if the two arrays have the same length and are not empty
   # Check if the two arrays have the same length and are not empty
@@ -109,7 +128,7 @@ spec:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: $email
     privateKeySecretRef:
-      name: ${clusterIssuerArray[$i]}-secret
+      name: ${clusterIssuerArray[$i]}
     solvers:
     - http01:
         ingress:
@@ -118,13 +137,13 @@ spec:
             spec:
               nodeSelector:
                 "kubernetes.io/os": linux
-EOF 
+EOF
     done
   fi
 
-  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n $certificateManagerManagedIdentityClientId ]]; then
+  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n cer ]]; then
         # Create DNS01 challenge issuer
-        echo "Creating DNS01 challenge issuer..."
+        echo "Creating DNS01 challenge issuer for the ${ingressClassArray[$i]} ingress class..."
         cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -145,6 +164,7 @@ spec:
           environment: AzurePublicCloud
           managedIdentity:
             clientID: $certificateManagerManagedIdentityClientId
+
 EOF
   fi
 fi
