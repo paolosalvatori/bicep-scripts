@@ -67,7 +67,8 @@ helm repo update
 # Install Prometheus
 if [[ $deployPrometheusAndGrafanaViaHelm == 'true' ]]; then
   echo "Installing Prometheus and Grafana..."
-  helm install prometheus prometheus-community/kube-prometheus-stack \
+  helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+    --install \
     --create-namespace \
     --namespace prometheus \
     --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
@@ -77,12 +78,15 @@ fi
 # Install certificate manager
 if [[ $deployCertificateManagerViaHelm == 'true' ]]; then
   echo "Installing cert-manager..."
-  helm install cert-manager jetstack/cert-manager \
+  helm upgrade cert-manager jetstack/cert-manager \
+    --install \
     --create-namespace \
     --namespace cert-manager \
     --set crds.enabled=true \
     --set prometheus.enabled=true \
-    --set nodeSelector."kubernetes\.io/os"=linux
+    --set nodeSelector."kubernetes\.io/os"=linux \
+    --set podLabels.azure\.workload\.identity/use="true" \
+    --set serviceAccount.labels.azure\.workload\.identity/use="true"
 
   # Create arrays from the comma-separated strings
   IFS=',' read -ra ingressClassArray <<<"$ingressClassNames"   # Split the string into an array
@@ -121,7 +125,8 @@ fi
 if [[ $deployNginxIngressControllerViaHelm == 'External' ]]; then
   # Install NGINX ingress controller using the internal load balancer
   echo "Installing NGINX ingress controller using the public load balancer..."
-  helm install nginx-ingress ingress-nginx/ingress-nginx \
+  helm upgrade nginx-ingress ingress-nginx/ingress-nginx \
+    --install \
     --create-namespace \
     --namespace ingress-basic \
     --set controller.replicaCount=3 \
