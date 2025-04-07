@@ -85,6 +85,7 @@ EOF
     --create-namespace \
     --namespace cert-manager \
     --set crds.enabled=true \
+    --set config.enableGatewayAPI=true \
     --set prometheus.enabled=true \
     --set nodeSelector."kubernetes\.io/os"=linux \
     --values values.yaml
@@ -141,7 +142,30 @@ EOF
     done
   fi
 
-  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n cer ]]; then
+  if [[ -n $gatewayName && -n $namespace ]]; then
+    echo "Creating cluster issuer for the ${gatewayName[$i]} gateway..."
+    cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-gateway
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: $email
+    privateKeySecretRef:
+      name: letsencrypt-gateway
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: $gatewayName
+                namespace: $namespace
+                kind: Gateway
+EOF
+  fi
+
+  if [[ -n $dnsZoneName && -n $dnsZoneResourceGroupName && -n certificateManagerManagedIdentityClientId ]]; then
         # Create DNS01 challenge issuer
         echo "Creating DNS01 challenge issuer for the ${ingressClassArray[$i]} ingress class..."
         cat <<EOF | kubectl apply -f -
